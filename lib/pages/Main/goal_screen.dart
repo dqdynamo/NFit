@@ -14,8 +14,6 @@ class GoalScreen extends StatefulWidget {
 
 class _GoalScreenState extends State<GoalScreen> {
   double _steps = 10000;
-  double _sleep = 8;
-  double _weight = 60;
   final _goalService = GoalService();
 
   bool _loading = true;
@@ -30,8 +28,6 @@ class _GoalScreenState extends State<GoalScreen> {
     final goals = await _goalService.loadGoals();
     setState(() {
       _steps = goals.steps.toDouble();
-      _sleep = goals.sleepHours;
-      _weight = goals.weight;
       _loading = false;
     });
   }
@@ -39,8 +35,6 @@ class _GoalScreenState extends State<GoalScreen> {
   Future<void> _save() async {
     final goals = GoalModel(
       steps: _steps.round(),
-      sleepHours: _sleep,
-      weight: _weight,
     );
     await _goalService.saveGoals(goals);
     Navigator.pop(context);
@@ -77,24 +71,6 @@ class _GoalScreenState extends State<GoalScreen> {
             max: 20000,
             step: 500,
             onChanged: (v) => setState(() => _steps = v),
-          ),
-          _GoalSlider(
-            label: 'Sleep Goal',
-            value: _sleep,
-            unit: 'hours',
-            min: 4,
-            max: 12,
-            step: 0.5,
-            onChanged: (v) => setState(() => _sleep = v),
-          ),
-          _GoalSlider(
-            label: 'Weight Goal',
-            value: _weight,
-            unit: 'kg',
-            min: 30,
-            max: 150,
-            step: 1,
-            onChanged: (v) => setState(() => _weight = v),
           ),
         ],
       ),

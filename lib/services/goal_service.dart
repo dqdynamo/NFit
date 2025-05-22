@@ -15,7 +15,7 @@ class GoalService {
     if (doc.exists) {
       return GoalModel.fromMap(doc.data()!);
     } else {
-      return GoalModel(steps: 10000, sleepHours: 8, weight: 60);
+      return GoalModel(steps: 10000);
     }
   }
 
