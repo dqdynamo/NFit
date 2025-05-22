@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
-import 'device_screen.dart';
 import 'progress_screen.dart';
+import 'nutrition_screen.dart';
 import 'more_screen.dart';
 
 class BottomNavBarScreen extends StatefulWidget {
@@ -17,7 +17,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
   final List<Widget> _pages = [
     const DashboardScreen(),
     const ProgressScreen(),
-    const DeviceScreen(),
+    const NutritionScreen(),
     const MoreScreen(),
   ];
 
@@ -32,7 +32,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             _currentIndex = index;
           });
         },
-        type: BottomNavigationBarType.fixed, // Позволяет 4+ кнопки
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -43,8 +43,8 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             label: 'Progress',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
-            label: 'Device',
+            icon: Icon(Icons.restaurant_menu), // <- новая иконка
+            label: 'Nutrition',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.more_horiz),

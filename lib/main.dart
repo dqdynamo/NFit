@@ -11,16 +11,15 @@ import 'package:diploma/services/activity_tracker_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await initializeDateFormatting('ru', null);
 
-  final healthService = HealthService();
-  await healthService.configure();
+  // Больше не нужно вызывать configure(), он отсутствует в новой версии health
+  // final healthService = HealthService();
+  // await healthService.configure();
+
   runApp(
     MultiProvider(
       providers: [
@@ -50,16 +49,14 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const BottomNavBarScreen(),
       },
-
-
-      localizationsDelegates: [
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', ''), // английский
-        Locale('ru', ''), // русский
+        Locale('en', ''),
+        Locale('ru', ''),
       ],
     );
   }

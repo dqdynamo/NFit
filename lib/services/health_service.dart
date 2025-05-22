@@ -5,22 +5,26 @@ import 'package:intl/intl.dart';
 class HealthService {
   final Health _health = Health();
 
-  Future<void> configure() async {
-    await _health.configure();
-  }
 
-  Future<bool> requestPermissions() async {
-    final activityGranted = await Permission.activityRecognition.isGranted;
-    final locationGranted = await Permission.location.isGranted;
-    final sensorsGranted = await Permission.sensors.isGranted;
+Future<bool> requestPermissions() async {
+    final permissions = [
+      Permission.activityRecognition,
+      Permission.location,
+      Permission.sensors,
+    ];
 
-    if (!activityGranted) await Permission.activityRecognition.request();
-    if (!locationGranted) await Permission.location.request();
-    if (!sensorsGranted) await Permission.sensors.request();
+    bool allGranted = true;
 
-    return await Permission.activityRecognition.isGranted &&
-        await Permission.location.isGranted &&
-        await Permission.sensors.isGranted;
+    for (final perm in permissions) {
+      if (!await perm.isGranted) {
+        final result = await perm.request();
+        if (!result.isGranted) {
+          allGranted = false;
+        }
+      }
+    }
+
+    return allGranted;
   }
 
   Future<bool> requestAuthorization() async {
@@ -38,90 +42,111 @@ class HealthService {
     final granted = await requestPermissions();
     if (!granted) return false;
 
-    return await _health.requestAuthorization(types, permissions: perms);
+    final authorized = await _health.requestAuthorization(types, permissions: perms);
+    print('Authorization granted: $authorized');
+    return authorized;
   }
 
   Future<int> fetchTodaySteps() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final steps = await _health.getTotalStepsInInterval(start, now);
-    return steps ?? 0;
+
+    try {
+      final steps = await _health.getTotalStepsInInterval(start, now);
+      print('Fetched steps from $start to $now: $steps');
+      return steps ?? 0;
+    } catch (e) {
+      print('Error fetching steps: $e');
+      return 0;
+    }
   }
 
   Future<double> fetchAverageHeartRate() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
 
-    final hrData = await _health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: now,
-      types: [HealthDataType.HEART_RATE],
-    );
+    try {
+      final hrData = await _health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: now,
+        types: [HealthDataType.HEART_RATE],
+      );
 
-    if (hrData.isEmpty) return 0;
+      if (hrData.isEmpty) return 0;
 
-    final avg = hrData.map((e) => e.value as double).reduce((a, b) => a + b) / hrData.length;
-    return avg;
+      final avg = hrData.map((e) => e.value as double).reduce((a, b) => a + b) / hrData.length;
+      return avg;
+    } catch (e) {
+      print('Error fetching heart rate: $e');
+      return 0;
+    }
   }
 
   Future<int> fetchTodaySleepMinutes() async {
     final now = DateTime.now();
     final start = now.subtract(const Duration(hours: 24));
 
-    final sleepData = await _health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: now,
-      types: [
-        HealthDataType.SLEEP_ASLEEP,
-        HealthDataType.SLEEP_LIGHT,
-        HealthDataType.SLEEP_DEEP,
-      ],
-    );
+    try {
+      final sleepData = await _health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: now,
+        types: [
+          HealthDataType.SLEEP_ASLEEP,
+          HealthDataType.SLEEP_LIGHT,
+          HealthDataType.SLEEP_DEEP,
+        ],
+      );
 
-    return sleepData.fold<int>(0, (sum, e) {
-      final duration = e.dateTo.difference(e.dateFrom).inMinutes;
-      return sum + duration;
-    });
+      return sleepData.fold<int>(0, (sum, e) {
+        final duration = e.dateTo.difference(e.dateFrom).inMinutes;
+        return sum + duration;
+      });
+    } catch (e) {
+      print('Error fetching sleep: $e');
+      return 0;
+    }
   }
 
-  Health get health => _health;
-
-  /// SleepData модель
   Future<SleepData> fetchSleepData() async {
     final now = DateTime.now();
     final start = now.subtract(const Duration(hours: 24));
 
-    final data = await _health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: now,
-      types: [
-        HealthDataType.SLEEP_DEEP,
-        HealthDataType.SLEEP_LIGHT,
-        HealthDataType.SLEEP_AWAKE,
-      ],
-    );
+    try {
+      final data = await _health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: now,
+        types: [
+          HealthDataType.SLEEP_DEEP,
+          HealthDataType.SLEEP_LIGHT,
+          HealthDataType.SLEEP_AWAKE,
+        ],
+      );
 
-    int deep = data
-        .where((e) => e.type == HealthDataType.SLEEP_DEEP)
-        .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
-    int light = data
-        .where((e) => e.type == HealthDataType.SLEEP_LIGHT)
-        .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
-    int wake = data
-        .where((e) => e.type == HealthDataType.SLEEP_AWAKE)
-        .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
+      int deep = data
+          .where((e) => e.type == HealthDataType.SLEEP_DEEP)
+          .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
+      int light = data
+          .where((e) => e.type == HealthDataType.SLEEP_LIGHT)
+          .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
+      int wake = data
+          .where((e) => e.type == HealthDataType.SLEEP_AWAKE)
+          .fold(0, (sum, e) => sum + e.dateTo.difference(e.dateFrom).inMinutes);
 
-    data.sort((a, b) => a.dateFrom.compareTo(b.dateFrom));
-    final startStr = data.isNotEmpty ? DateFormat('HH:mm').format(data.first.dateFrom) : '00:00';
-    final endStr = data.isNotEmpty ? DateFormat('HH:mm').format(data.last.dateTo) : '00:00';
+      data.sort((a, b) => a.dateFrom.compareTo(b.dateFrom));
+      final startStr = data.isNotEmpty ? DateFormat('HH:mm').format(data.first.dateFrom) : '00:00';
+      final endStr = data.isNotEmpty ? DateFormat('HH:mm').format(data.last.dateTo) : '00:00';
 
-    return SleepData(
-      deep: deep,
-      light: light,
-      wake: wake,
-      start: startStr,
-      end: endStr,
-    );
+      return SleepData(
+        deep: deep,
+        light: light,
+        wake: wake,
+        start: startStr,
+        end: endStr,
+      );
+    } catch (e) {
+      print('Error fetching sleep data: $e');
+      return SleepData(deep: 0, light: 0, wake: 0, start: '00:00', end: '00:00');
+    }
   }
 }
 
